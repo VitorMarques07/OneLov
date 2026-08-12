@@ -4,7 +4,7 @@ from config import settings
 from database import Database
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from . import __init__
+
 intents=discord.Intents.default(); intents.members=True; intents.guilds=True
 class FarmManager(commands.Bot):
  def __init__(self):
@@ -17,8 +17,7 @@ class FarmManager(commands.Bot):
   return await self.db.one('SELECT * FROM weeks WHERE guild_id=? AND start_date=?',(guild.id,start.isoformat()))
  async def setup_hook(self):
   await self.db.init()
-  for ext in ('cogs.admin','cogs.permissions','cogs.tickets','cogs.farm','cogs.dashboard','cogs.reports'):
-   await self.load_extension(ext)
+  for ext in ('cogs.admin','cogs.permissions','cogs.tickets','cogs.farm','cogs.dashboard','cogs.reports'): await self.load_extension(ext)
   if settings.guild_id: await self.tree.sync(guild=discord.Object(id=settings.guild_id))
   else: await self.tree.sync()
   self.weekly_automation.start()
@@ -30,8 +29,7 @@ class FarmManager(commands.Bot):
   now=self.local_now()
   for guild in self.guilds:
    week=await self.ensure_week(guild); cfg=await self.db.one('SELECT * FROM guild_config WHERE guild_id=?',(guild.id,))
-   if now.weekday()==0 and cfg and cfg['auto_charge'] and now.hour==cfg['cobranca_hour'] and now.minute==cfg['cobranca_minute']:
-    await self.send_charges(guild,now,False)
+   if now.weekday()==0 and cfg and cfg['auto_charge'] and now.hour==cfg['cobranca_hour'] and now.minute==cfg['cobranca_minute']: await self.send_charges(guild,now,False)
  async def send_charges(self,guild,now,manual=False):
   cfg=await self.db.one('SELECT * FROM guild_config WHERE guild_id=?',(guild.id,)); week=await self.ensure_week(guild)
   if not cfg:return
