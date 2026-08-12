@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from datetime import datetime
-from .common import allowed,week_range
+from .common import allowed
 class Review(discord.ui.View):
  def __init__(self,bot,did): super().__init__(timeout=None); self.bot=bot; self.did=did
  async def act(self,i,status):
@@ -23,8 +23,11 @@ class Farm(commands.Cog):
   t=await self.bot.db.one("SELECT id,member_id FROM tickets WHERE channel_id=? AND status='open'",(i.channel_id,))
   if not t:return await i.response.send_message('❌ Use este comando em um ticket ativo.',ephemeral=True)
   if t['member_id']!=i.user.id and not await allowed(i,'membros'):return await i.response.send_message('❌ Este ticket pertence a outro membro.',ephemeral=True)
+  now=datetime.utcnow(); week=await self.bot.db.one("SELECT id FROM weeks WHERE guild_id=? AND start_date<=? AND end_date>=? ORDER BY id DESC LIMIT 1",(i.guild_id,now.isoformat(),now.isoformat()))
+  if not week:
+   return await i.response.send_message('❌ A semana ainda não foi inicializada. Peça ao administrador para executar `/iniciarsemana`.',ephemeral=True)
   cfg=await self.bot.db.one('SELECT approval_required FROM guild_config WHERE guild_id=?',(i.guild_id,)); status='pending' if not cfg or cfg['approval_required'] else 'approved'
-  did=await self.bot.db.execute('INSERT INTO deliveries(guild_id,ticket_id,member_id,quantity,status,registered_by,created_at) VALUES(?,?,?,?,?,?,?)',(i.guild_id,t['id'],t['member_id'],quantidade,status,i.user.id,datetime.utcnow().isoformat())); await self.bot.db.log(i.guild_id,i.user.id,'entrega_registrada',f'id={did};qtd={quantidade}')
+  did=await self.bot.db.execute('INSERT INTO deliveries(guild_id,week_id,ticket_id,member_id,quantity,status,registered_by,created_at) VALUES(?,?,?,?,?,?,?,?)',(i.guild_id,week['id'],t['id'],t['member_id'],quantidade,status,i.user.id,now.isoformat())); await self.bot.db.log(i.guild_id,i.user.id,'entrega_registrada',f'id={did};qtd={quantidade}')
   if status=='pending': await i.response.send_message(f'📦 **{quantidade:,}** pendente de aprovação.'.replace(',','.'),view=Review(self.bot,did))
   else: await i.response.send_message(f'🟢 **{quantidade:,}** aprovada automaticamente.'.replace(',','.'))
  @app_commands.command(name='pendentes',description='Lista entregas pendentes.')
