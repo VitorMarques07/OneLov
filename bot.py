@@ -29,7 +29,8 @@ class OneLov(commands.Bot):
 
     async def setup_hook(self):
         await self.db.init()
-        for ext in ('cogs.admin', 'cogs.permissions', 'cogs.tickets', 'cogs.farm', 'cogs.dashboard', 'cogs.reports', 'cogs.advanced'):
+        # Lite: load only modules that exist in the Lite repository.
+        for ext in ('cogs.admin', 'cogs.permissions', 'cogs.tickets', 'cogs.farm', 'cogs.dashboard', 'cogs.reports'):
             await self.load_extension(ext)
         if settings.guild_id:
             await self.tree.sync(guild=discord.Object(id=settings.guild_id))
