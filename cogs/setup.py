@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from config import settings
+from .tickets import TicketView
+from .farm import DeliveryView
 
 CHANNELS = {
     'informacoes': '📌・informações',
@@ -54,12 +56,14 @@ class Setup(commands.Cog):
         async for m in ch.history(limit=20):
             if m.author == self.bot.user and marker in (m.content or ''): return
         embed = discord.Embed(color=discord.Color.from_rgb(249, 215, 239))
+        view = None
         if key == 'informacoes':
             embed.title = 'ONELOV — CONTROLE DE FARM'
             embed.description = '👋 **BEM-VINDO AO CONTROLE DE FARM!**\n\n🤖 Este é um sistema automatizado para facilitar o controle e o registro de Farm.\n\n📸 Para registrar uma entrega, será necessário enviar uma foto ou print **do seu Farm**.'
         elif key == 'entregas_farm':
             embed.title = '📦 ONELOV — ENTREGAS DE FARM'
             embed.description = 'Registre seu Farm por este painel.\n\n📦 Material: **Farm Completo**\n🔢 Informe a quantidade.\n📸 Envie uma foto ou print **do seu Farm**.\n🟡 A entrega ficará aguardando aprovação.'
+            view = DeliveryView(self.bot)
         elif key == 'entregas':
             embed.title = '📋 ONELOV — PAINEL DE ENTREGAS'
             embed.description = 'Painel reservado à equipe autorizada.\n\n🟡 Pendentes\n🟢 Aprovadas\n🔴 Reprovadas'
@@ -75,9 +79,10 @@ class Setup(commands.Cog):
         elif key == 'tickets':
             embed.title = '🎫 ONELOV — CENTRAL DE SUPORTE'
             embed.description = 'Abra um atendimento privado com a equipe autorizada.'
+            view = TicketView(self.bot)
         else: return
         embed.set_footer(text=marker)
-        await ch.send(embed=embed)
+        await ch.send(embed=embed, view=view)
 
     @app_commands.command(name='setup', description='Cria e configura toda a estrutura do OneLov.')
     async def setup_command(self, interaction: discord.Interaction):
