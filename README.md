@@ -8,8 +8,10 @@ Bot Discord para gestão diária de farm/meta de organizações GTA RP.
 - Tickets individuais, histórico e prevenção de duplicados.
 - Entregas dentro do ticket com aprovação/reprovação.
 - Meta semanal padrão de 2.000, configurável e sem percentuais.
-- Semana de segunda a domingo com histórico persistente.
-- Cobrança automática em horário configurável e `/cobrar` manual.
+- **Ciclo semanal do Farm de terça-feira a terça-feira.**
+- Ranking, metas e relatórios semanais seguem o ciclo de terça a terça.
+- Histórico persistente das semanas anteriores.
+- Cobrança automática no início de cada novo ciclo semanal, em horário configurável, e `/cobrar` manual.
 - Dashboard, ranking, `/perfil` e `/relatorio`.
 - Logs de ações no SQLite.
 - SQLite com camada isolada para futura migração PostgreSQL.
@@ -28,6 +30,13 @@ Bot Discord para gestão diária de farm/meta de organizações GTA RP.
 - `/permissoes` — lista permissões.
 - `/iniciarsemana` — inicializa a semana atual manualmente.
 - `/cobrar` — envia cobrança manual nos tickets ativos.
+
+## Período semanal do Farm
+O OneLov considera como semana oficial o período **terça-feira 00:00:00 até segunda-feira 23:59:59**, reiniciando automaticamente na terça-feira seguinte.
+
+Exemplo: `11/08/2026 → 17/08/2026`. O novo ciclo começa em `18/08/2026`.
+
+As entregas aprovadas são contabilizadas no ciclo correspondente. Entregas pendentes não entram no ranking até serem aprovadas.
 
 ## Permissões
 As chaves disponíveis são: `configuração`, `tickets`, `registro`, `aprovação`, `membros`, `meta`, `dashboard`, `relatórios`, `cobranças` e `logs`.
