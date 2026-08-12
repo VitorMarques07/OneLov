@@ -1,5 +1,5 @@
 {
-  "name": "farm-manager",
+  "name": "onelov",
   "type": "bot",
   "main": "bot.py",
   "ram": 100,
