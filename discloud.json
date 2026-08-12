@@ -1,0 +1,8 @@
+{
+  "name": "farm-manager",
+  "type": "bot",
+  "main": "bot.py",
+  "ram": 100,
+  "version": "3.12",
+  "autorestart": true
+}
