@@ -20,7 +20,10 @@ class OneLov(commands.Bot):
 
     async def ensure_week(self, guild, now=None):
         now = now or self.local_now()
-        start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        # OneLov: weekly Farm period runs from Tuesday through the following Tuesday.
+        # Python weekday(): Monday=0, Tuesday=1, ..., Sunday=6.
+        days_since_tuesday = (now.weekday() - 1) % 7
+        start = (now - timedelta(days=days_since_tuesday)).replace(hour=0, minute=0, second=0, microsecond=0)
         end = start + timedelta(days=6, hours=23, minutes=59, seconds=59)
         cfg = await self.db.one('SELECT * FROM guild_config WHERE guild_id=?', (guild.id,))
         goal = cfg['weekly_goal'] if cfg else settings.default_goal
@@ -49,7 +52,7 @@ class OneLov(commands.Bot):
         for guild in self.guilds:
             await self.ensure_week(guild, now)
             cfg = await self.db.one('SELECT * FROM guild_config WHERE guild_id=?', (guild.id,))
-            if cfg and cfg['auto_charge'] and now.weekday() == 0 and now.hour == cfg['cobranca_hour'] and now.minute == cfg['cobranca_minute']:
+            if cfg and cfg['auto_charge'] and now.weekday() == 1 and now.hour == cfg['cobranca_hour'] and now.minute == cfg['cobranca_minute']:
                 await self.send_charges(guild, now, False)
 
     async def send_charges(self, guild, now, manual=False):
@@ -66,7 +69,7 @@ class OneLov(commands.Bot):
                 continue
             total = (await self.db.one("SELECT COALESCE(SUM(quantity),0) total FROM deliveries WHERE week_id=? AND member_id=? AND status='approved'", (week['id'], member.id)))['total']
             remaining = max(0, cfg['weekly_goal'] - total)
-            await channel.send(f'🔔 **OneLov — COBRANÇA SEMANAL**\n🎯 Meta: **{cfg["weekly_goal"]:,}**\n📦 Aprovado: **{total:,}**\n📉 Restante: **{remaining:,}**\n📅 Semana: **{datetime.fromisoformat(week["start_date"]):%d/%m/%Y}**'.replace(',', '.'))
+            await channel.send(f'🔔 **OneLov — COBRANÇA SEMANAL**\n🎯 Meta: **{cfg["weekly_goal"]:,}**\n📦 Aprovado: **{total:,}**\n📉 Restante: **{remaining:,}**\n📅 Semana: **{datetime.fromisoformat(week["start_date"]):%d/%m/%Y} → {datetime.fromisoformat(week["end_date"]):%d/%m/%Y}**'.replace(',', '.'))
             await self.db.execute('INSERT INTO charges(guild_id,week_id,member_id,channel_id,sent_at,manual) VALUES(?,?,?,?,?,?)', (guild.id, week['id'], member.id, channel.id, now.isoformat(), 1 if manual else 0))
             await self.db.log(guild.id, self.user.id, 'cobranca_enviada', f'membro={member.id};manual={manual}')
 
