@@ -1,33 +1,95 @@
 # FARM MANAGER
 
-Bot Discord profissional para gestão de farm/meta de organizações de GTA RP.
+Bot Discord para gestão diária de farm/meta de organizações GTA RP.
 
-## Stack
-- Python 3.11+
-- discord.py 2.5+
-- SQLite com camada preparada para futura migração para PostgreSQL
-- python-dotenv
-- Fuso horário: America/Sao_Paulo
+## Funcionalidades
+- Administrador Supremo permanente via `SUPER_ADMIN_ID`.
+- Permissões por cargo ou usuário.
+- Tickets individuais, histórico e prevenção de duplicados.
+- Entregas dentro do ticket com aprovação/reprovação.
+- Meta semanal padrão de 2.000, configurável e sem percentuais.
+- Semana de segunda a domingo com histórico persistente.
+- Cobrança automática em horário configurável e `/cobrar` manual.
+- Dashboard, ranking, `/perfil` e `/relatorio`.
+- Logs de ações no SQLite.
+- SQLite com camada isolada para futura migração PostgreSQL.
+- Fuso `America/Sao_Paulo`.
 
-## Recursos
-- Administrador Supremo
-- Permissões configuráveis por cargo/usuário
-- Tickets de farm
-- Entregas com aprovação/reprovação
-- Meta semanal sem percentuais
-- Dashboard e ranking
-- Relatório semanal
-- Histórico e logs
-- .env para segredos
+## Comandos
+- `/painel` — envia o botão ABRIR TICKET.
+- `/entrega quantidade` — registra farm no ticket.
+- `/fecharticket` — fecha o ticket sem apagar histórico.
+- `/pendentes` — lista entregas pendentes para aprovação.
+- `/dashboard` — dashboard e ranking da semana.
+- `/perfil [usuario]` — meta, aprovado, restante, situação, tickets e histórico de aprovações/reprovações.
+- `/relatorio` — relatório semanal.
+- `/config` — meta, aprovação, categoria, canal de logs, horário e cobrança automática.
+- `/permissao` — concede uma permissão a cargo/usuário.
+- `/permissoes` — lista permissões.
+- `/iniciarsemana` — inicializa a semana atual manualmente.
+- `/cobrar` — envia cobrança manual nos tickets ativos.
 
-## Instalação
-1. Instale Python 3.11+.
-2. Copie `.env.example` para `.env`.
-3. Preencha o token, Client ID, Guild ID e ID do Administrador Supremo.
-4. Execute `iniciar_windows.bat` no Windows ou `./iniciar_linux.sh` no Linux.
+## Permissões
+As chaves disponíveis são: `configuração`, `tickets`, `registro`, `aprovação`, `membros`, `meta`, `dashboard`, `relatórios`, `cobranças` e `logs`.
+O `SUPER_ADMIN_ID` sempre tem acesso e não pode ser removido por configuração comum.
+
+## Configuração
+Copie `.env.example` para `.env` e preencha:
+- `DISCORD_TOKEN`: token do bot.
+- `DISCORD_CLIENT_ID`: Application ID.
+- `DISCORD_GUILD_ID`: ID do servidor para sincronização rápida dos slash commands.
+- `SUPER_ADMIN_ID`: seu ID Discord.
+- `DATABASE_PATH`: caminho do SQLite.
+- `TIMEZONE`: `America/Sao_Paulo`.
+- `DEFAULT_WEEKLY_GOAL`: `2000`.
+
+As configurações de meta, aprovação, categoria, logs e cobrança também podem ser alteradas pelo `/config`.
+
+## Instalação Windows
+```bat
+python --version
+copy .env.example .env
+iniciar_windows.bat
+```
+
+## Instalação Linux/VPS
+```bash
+python3 --version
+cp .env.example .env
+chmod +x iniciar_linux.sh
+./iniciar_linux.sh
+```
+
+Para manter 24/7, use systemd, Docker ou um supervisor de processos. Exemplo systemd:
+```ini
+[Unit]
+Description=FARM MANAGER Discord Bot
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/Farm_Manager
+ExecStart=/usr/bin/python3 /opt/Farm_Manager/bot.py
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/Farm_Manager/.env
+
+[Install]
+WantedBy=multi-user.target
+```
 
 ## Discord Developer Portal
-Crie uma Application, adicione um Bot, copie o token e habilite os intents necessários. Em OAuth2 > URL Generator, marque `bot` e `applications.commands`.
+1. Crie uma Application.
+2. Crie o Bot e copie o token.
+3. Ative `Server Members Intent` em Privileged Gateway Intents.
+4. OAuth2 → URL Generator: marque `bot` e `applications.commands`.
+5. Dê ao bot permissões para criar canais, gerenciar permissões, enviar mensagens, incorporar links e usar slash commands.
+6. Configure `SUPER_ADMIN_ID` com seu ID Discord.
 
 ## Segurança
-Nunca publique `.env` ou o token do bot. O `.gitignore` já ignora `.env` e o banco local.
+Nunca coloque o token no código ou no GitHub. `.env` e `data/*.db` são ignorados pelo Git.
+Se um token for exposto, revogue-o no Developer Portal imediatamente.
+
+## Arquitetura
+`bot.py` contém o ciclo principal e automação. `database.py` contém persistência e migrações SQLite. `cogs/` separa administração, permissões, tickets, farm, dashboard e relatórios.
+
+O histórico das semanas, tickets, entregas e logs fica no banco; iniciar uma nova semana não apaga semanas anteriores.
