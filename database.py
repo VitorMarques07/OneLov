@@ -13,7 +13,13 @@ CREATE TABLE IF NOT EXISTS logs(id INTEGER PRIMARY KEY AUTOINCREMENT,guild_id IN
 class Database:
  def __init__(self,path): self.path=Path(path); self.path.parent.mkdir(parents=True,exist_ok=True)
  async def init(self):
-  async with aiosqlite.connect(self.path) as db: await db.executescript(SCHEMA); await db.commit()
+  async with aiosqlite.connect(self.path) as db:
+   await db.executescript(SCHEMA)
+   for table,cols in {'guild_config':{'cobranca_hour':'INTEGER NOT NULL DEFAULT 9','cobranca_minute':'INTEGER NOT NULL DEFAULT 0','duplicate_tickets':'INTEGER NOT NULL DEFAULT 1','auto_charge':'INTEGER NOT NULL DEFAULT 1'},'deliveries':{'week_id':'INTEGER'}}.items():
+    cur=await db.execute(f'PRAGMA table_info({table})'); existing={r[1] for r in await cur.fetchall()}
+    for name,definition in cols.items():
+     if name not in existing: await db.execute(f'ALTER TABLE {table} ADD COLUMN {name} {definition}')
+   await db.commit()
  async def execute(self,sql,p=()):
   async with aiosqlite.connect(self.path) as db: c=await db.execute(sql,p); await db.commit(); return c.lastrowid
  async def one(self,sql,p=()):
