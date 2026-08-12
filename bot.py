@@ -4,14 +4,13 @@ from config import settings
 from database import Database
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-
 intents=discord.Intents.default(); intents.members=True; intents.guilds=True
 class FarmManager(commands.Bot):
  def __init__(self):
   super().__init__(command_prefix='!',intents=intents,application_id=settings.client_id or None); self.db=Database(settings.database_path); self.tz=ZoneInfo(settings.timezone)
  def local_now(self): return datetime.now(self.tz).replace(tzinfo=None)
- async def ensure_week(self,guild):
-  now=self.local_now(); start=now-timedelta(days=now.weekday()); start=start.replace(hour=0,minute=0,second=0,microsecond=0); end=start+timedelta(days=6,hours=23,minutes=59,seconds=59)
+ async def ensure_week(self,guild,now=None):
+  now=now or self.local_now(); start=(now-timedelta(days=now.weekday())).replace(hour=0,minute=0,second=0,microsecond=0); end=start+timedelta(days=6,hours=23,minutes=59,seconds=59)
   cfg=await self.db.one('SELECT * FROM guild_config WHERE guild_id=?',(guild.id,)); goal=cfg['weekly_goal'] if cfg else settings.default_goal
   await self.db.execute('INSERT OR IGNORE INTO weeks(guild_id,start_date,end_date,goal,created_at) VALUES(?,?,?,?,?)',(guild.id,start.isoformat(),end.isoformat(),goal,now.isoformat()))
   return await self.db.one('SELECT * FROM weeks WHERE guild_id=? AND start_date=?',(guild.id,start.isoformat()))
@@ -28,10 +27,10 @@ class FarmManager(commands.Bot):
  async def weekly_automation(self):
   now=self.local_now()
   for guild in self.guilds:
-   week=await self.ensure_week(guild); cfg=await self.db.one('SELECT * FROM guild_config WHERE guild_id=?',(guild.id,))
+   week=await self.ensure_week(guild,now); cfg=await self.db.one('SELECT * FROM guild_config WHERE guild_id=?',(guild.id,))
    if now.weekday()==0 and cfg and cfg['auto_charge'] and now.hour==cfg['cobranca_hour'] and now.minute==cfg['cobranca_minute']: await self.send_charges(guild,now,False)
  async def send_charges(self,guild,now,manual=False):
-  cfg=await self.db.one('SELECT * FROM guild_config WHERE guild_id=?',(guild.id,)); week=await self.ensure_week(guild)
+  cfg=await self.db.one('SELECT * FROM guild_config WHERE guild_id=?',(guild.id,)); week=await self.ensure_week(guild,now)
   if not cfg:return
   for t in await self.db.all("SELECT * FROM tickets WHERE guild_id=? AND status='open'",(guild.id,)):
    member=guild.get_member(t['member_id']); ch=guild.get_channel(t['channel_id'])
