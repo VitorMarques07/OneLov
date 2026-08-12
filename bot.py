@@ -20,11 +20,9 @@ class OneLov(commands.Bot):
 
     async def ensure_week(self, guild, now=None):
         now = now or self.local_now()
-        # OneLov: weekly Farm period runs from Tuesday through the following Tuesday.
-        # Python weekday(): Monday=0, Tuesday=1, ..., Sunday=6.
         days_since_tuesday = (now.weekday() - 1) % 7
         start = (now - timedelta(days=days_since_tuesday)).replace(hour=0, minute=0, second=0, microsecond=0)
-        end = start + timedelta(days=6, hours=23, minutes=59, seconds=59)
+        end = start + timedelta(days=7)
         cfg = await self.db.one('SELECT * FROM guild_config WHERE guild_id=?', (guild.id,))
         goal = cfg['weekly_goal'] if cfg else settings.default_goal
         await self.db.execute('INSERT OR IGNORE INTO weeks(guild_id,start_date,end_date,goal,created_at) VALUES(?,?,?,?,?)', (guild.id, start.isoformat(), end.isoformat(), goal, now.isoformat()))
@@ -32,8 +30,7 @@ class OneLov(commands.Bot):
 
     async def setup_hook(self):
         await self.db.init()
-        # Lite: load only modules that exist in the Lite repository.
-        for ext in ('cogs.admin', 'cogs.permissions', 'cogs.tickets', 'cogs.farm', 'cogs.dashboard', 'cogs.reports'):
+        for ext in ('cogs.admin', 'cogs.permissions', 'cogs.setup', 'cogs.tickets', 'cogs.farm', 'cogs.dashboard', 'cogs.reports'):
             await self.load_extension(ext)
         if settings.guild_id:
             await self.tree.sync(guild=discord.Object(id=settings.guild_id))
@@ -69,6 +66,8 @@ class OneLov(commands.Bot):
                 continue
             total = (await self.db.one("SELECT COALESCE(SUM(quantity),0) total FROM deliveries WHERE week_id=? AND member_id=? AND status='approved'", (week['id'], member.id)))['total']
             remaining = max(0, cfg['weekly_goal'] - total)
+            if total >= cfg['weekly_goal']:
+                continue
             await channel.send(f'🔔 **OneLov — COBRANÇA SEMANAL**\n🎯 Meta: **{cfg["weekly_goal"]:,}**\n📦 Aprovado: **{total:,}**\n📉 Restante: **{remaining:,}**\n📅 Semana: **{datetime.fromisoformat(week["start_date"]):%d/%m/%Y} → {datetime.fromisoformat(week["end_date"]):%d/%m/%Y}**'.replace(',', '.'))
             await self.db.execute('INSERT INTO charges(guild_id,week_id,member_id,channel_id,sent_at,manual) VALUES(?,?,?,?,?,?)', (guild.id, week['id'], member.id, channel.id, now.isoformat(), 1 if manual else 0))
             await self.db.log(guild.id, self.user.id, 'cobranca_enviada', f'membro={member.id};manual={manual}')
